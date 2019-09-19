@@ -2,9 +2,6 @@
 using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Mango.Nosql.Mongo.Samples
 {
@@ -44,7 +41,7 @@ namespace Mango.Nosql.Mongo.Samples
 
             //var getResult = mongoRepository.ToList<Logs>(w => w.LogName == "CatchErrorLog", 10);
 
-            var getResult = mongoRepository.PageList<Logs>(w => w.LogName == "CatchErrorLog",s=>s.Desc(b=>b.CreateTime),1, 10);
+            var getResult = mongoRepository.PageList<Logs>(w => w.LogName == "CatchErrorLog", s => s.Desc(b => b.CreateTime), 1, 10);
 
             Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(getResult));
             Console.ReadKey();
