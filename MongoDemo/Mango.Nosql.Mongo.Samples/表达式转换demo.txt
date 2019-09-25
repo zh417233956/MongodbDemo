@@ -1,0 +1,165 @@
+﻿#region 生成查询表达式
+
+        /// <summary>
+        /// 根据条件数据动态生成连接条件
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        private Expression<Func<TSource, bool>> GenerateCommonFilterModel<TSource>(List<CommonFilterModel> filters)
+        {
+            Expression<Func<TSource, bool>> andExp = null;
+            Expression body = null;
+            var p = Expression.Parameter(typeof(TSource), "p");
+            foreach (var item in filters)
+            {
+                Expression bodyItem = null;
+                var propertyName = Expression.Property(p, item.Name);
+                object itemValue = null;
+                if (propertyName.Type == typeof(DateTime))
+                {
+                    itemValue = Convert.ToDateTime(item.Value);
+                }
+                else if (propertyName.Type == typeof(int))
+                {
+                    itemValue = Convert.ToInt32(item.Value);
+                }
+                else if (propertyName.Type == typeof(decimal))
+                {
+                    itemValue = Convert.ToDecimal(item.Value);
+                }
+                else
+                {
+                    itemValue = Convert.ChangeType(item.Value, propertyName.Type);
+                }
+
+                switch (item.Filter)
+                {
+                    case "=":
+                        bodyItem = Expression.Equal(propertyName, Expression.Constant(itemValue));
+                        break;
+                    case ">":
+                        bodyItem = Expression.GreaterThan(propertyName, Expression.Constant(itemValue));
+                        break;
+                    case "<":
+                        bodyItem = Expression.LessThan(propertyName, Expression.Constant(itemValue));
+                        break;
+                    case ">=":
+                        bodyItem = Expression.GreaterThanOrEqual(propertyName, Expression.Constant(itemValue));
+                        break;
+                    case "<=":
+                        bodyItem = Expression.LessThanOrEqual(propertyName, Expression.Constant(itemValue));
+                        break;
+                    case "!=":
+                        bodyItem = Expression.NotEqual(propertyName, Expression.Constant(itemValue));
+                        break;
+                    case "like":
+                        var method = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+                        bodyItem = Expression.Equal(Expression.Call(propertyName, method, Expression.Constant(item.Value)), Expression.Constant(true));
+                        break;
+                    case "in":
+                        Expression expression = Expression.Constant(false);
+                        var methodEquals = (propertyName.Type).GetMethod("Equals", new Type[] { propertyName.Type });
+                        foreach (var optionName in item.ListValue)
+                        {
+                            itemValue = Convert.ChangeType(optionName, propertyName.Type);
+                            Expression right = Expression.Call
+                                   (
+                                      propertyName,  //p.DataSourceName
+                                      methodEquals,// 反射使用.Contains()方法                         
+                                      Expression.Constant(itemValue)
+                                   );
+                            expression = Expression.Or(right, expression);//p.DataSourceName.contain("") || p.DataSourceName.contain("") 
+                        }
+                        bodyItem = expression;
+
+                        break;
+                    case "not in":
+                        Expression expression2 = Expression.Constant(true);
+                        foreach (var optionName in item.ListValue)
+                        {
+                            itemValue = Convert.ChangeType(optionName, propertyName.Type);
+                            Expression right = Expression.NotEqual(propertyName, Expression.Constant(itemValue));
+                            expression2 = Expression.And(right, expression2);
+                        }
+                        bodyItem = expression2;
+
+                        break;
+                }
+
+                if (body == null)
+                {
+                    body = bodyItem;
+                }
+                else if (bodyItem != null)
+                {
+                    body = Expression.AndAlso(body, bodyItem);
+                }
+            }
+
+            andExp = Expression.Lambda<Func<TSource, bool>>(body, p);
+
+            return andExp;
+        }
+        /// <summary>
+        /// 根据排序条件动态生成排序
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <param name="orders"></param>
+        /// <returns></returns>
+        private Func<Sort<TSource>, Sort<TSource>> GenerateCommonOrderModel<TSource>(List<CommonOrderModel> orders)
+        {
+            Func<Sort<TSource>, Sort<TSource>> orderExp = null;
+            var p = Expression.Parameter(typeof(TSource), "p");
+            MemberExpression propertyName = null;
+            orderExp = (o) =>
+            {
+                for (int i = 0; i < orders.Count; i++)
+                {
+                    propertyName = Expression.Property(p, orders[i].Name);
+
+                    if (orders[i].Order == 1)
+                    {
+                        if (propertyName.Type == typeof(DateTime))
+                        {
+                            o = o.Desc(Expression.Lambda<Func<TSource, DateTime>>(propertyName, p));
+                        }
+                        else if (propertyName.Type == typeof(int))
+                        {
+                            o = o.Desc(Expression.Lambda<Func<TSource, int>>(propertyName, p));
+                        }
+                        else if (propertyName.Type == typeof(decimal))
+                        {
+                            o = o.Desc(Expression.Lambda<Func<TSource, decimal>>(propertyName, p));
+                        }
+                        else if (propertyName.Type == typeof(string))
+                        {
+                            o = o.Desc(Expression.Lambda<Func<TSource, string>>(propertyName, p));
+                        }
+                    }
+                    else if (orders[i].Order == 0)
+                    {
+                        if (propertyName.Type == typeof(DateTime))
+                        {
+                            o = o.Asc(Expression.Lambda<Func<TSource, DateTime>>(propertyName, p));
+                        }
+                        else if (propertyName.Type == typeof(int))
+                        {
+                            o = o.Asc(Expression.Lambda<Func<TSource, int>>(propertyName, p));
+                        }
+                        else if (propertyName.Type == typeof(decimal))
+                        {
+                            o = o.Asc(Expression.Lambda<Func<TSource, decimal>>(propertyName, p));
+                        }
+                        else if (propertyName.Type == typeof(string))
+                        {
+                            o = o.Asc(Expression.Lambda<Func<TSource, string>>(propertyName, p));
+                        }
+                    }
+                }
+                return o;
+            };
+            return orderExp;
+        }
+
+        #endregion 生成查询表达式

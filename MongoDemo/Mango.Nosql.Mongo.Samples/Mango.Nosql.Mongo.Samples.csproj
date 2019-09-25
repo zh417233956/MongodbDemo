@@ -86,5 +86,8 @@
       <Name>Mango.Nosql.Mongo</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="表达式转换demo.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
